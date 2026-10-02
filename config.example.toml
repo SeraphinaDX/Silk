@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Optional: ~/.config/silk/config.toml on Linux.
+home = "https://example.org"
+# Leave blank to locate Chromium/Chrome automatically.
+chrome = ""
+# Applies only to images. Page text is always native terminal text.
+# auto probes sixel support and uses alt-text placeholders without a reply.
+# Options: auto, sixel, none, halfblock (image-only low-resolution fallback).
+graphics = "auto"
+# Fallback metrics; terminal pixel reports override these. -cell=8x16 forces them.
+cell_width = 8
+cell_height = 16
+refresh_ms = 400
+# Image scaling; does not change the terminal font.
+zoom = 1.0
+image_max_rows = 10
+# Empty means a temporary profile, removed when Silk exits.
+# Set a dedicated directory to keep cookies and localStorage between runs.
+profile = ""
+# Keep Chromium sandboxed for normal browsing.
+no_sandbox = false

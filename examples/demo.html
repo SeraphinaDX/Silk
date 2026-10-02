@@ -1,0 +1,29 @@
+<!-- SPDX-License-Identifier: GPL-3.0-or-later -->
+<!doctype html>
+<meta charset="utf-8">
+<title>Silk browser demo</title>
+<style>
+body{margin:24px;font:18px system-ui;background:#201927;color:#f9e5f2}
+h1{color:#ffafd8}button,input{font:inherit;padding:10px;border-radius:8px;border:1px solid #de8ebb;margin:6px;background:#422f4e;color:white}
+canvas{display:block;border-radius:12px;margin:16px 0;max-width:100%}
+a{color:#e9b6ff}.spacer{height:900px;background:linear-gradient(#201927,#834268)}
+</style>
+<h1>Silk: native text + sixel images</h1>
+<p>This page works offline. Click the button, type in the field, and scroll.</p>
+<button id="count">Clicked 0 times</button>
+<input id="name" placeholder="Type your name">
+<p id="hello">Hello from JavaScript.</p>
+<p>The headings and paragraphs are terminal characters. Only the artwork below is sixel.</p>
+<canvas width="560" height="150" id="art" aria-label="Gradient artwork"></canvas>
+<p><a href="https://example.org">Visit example.org</a> · <a href="https://example.org" target="_blank">Same-tab external link</a></p>
+<section id="reading"></section><h2>You scrolled to the bottom!</h2>
+<script>
+let count=0;
+document.querySelector('#count').onclick=e=>e.target.textContent=`Clicked ${++count} times`;
+document.querySelector('#name').oninput=e=>document.querySelector('#hello').textContent=`Hello, ${e.target.value || 'friend'}!`;
+const ctx=document.querySelector('#art').getContext('2d');
+const gradient=ctx.createLinearGradient(0,0,560,150);gradient.addColorStop(0,'#ffafd8');gradient.addColorStop(.5,'#ab85ff');gradient.addColorStop(1,'#52dccb');
+ctx.fillStyle=gradient;ctx.fillRect(0,0,560,150);
+for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(75+i*100,75,30,0,Math.PI*2);ctx.fillStyle=i%2?'#fff3fb':'#422f4e';ctx.fill();}
+document.querySelector('#reading').innerHTML=Array.from({length:18},(_,i)=>`<p>Paragraph ${i+1}: This is readable terminal text. Use the wheel, arrow keys, or PageDown to scroll.</p>`).join('');
+</script>
