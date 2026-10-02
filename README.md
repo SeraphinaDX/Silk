@@ -1,4 +1,4 @@
-# Silk 0.2.0
+# Silk 0.2.1
 
 A text-based terminal browser in Go, with sixel **for images only**.
 Headings, paragraphs, links, lists, tables, and form fields are real terminal
@@ -7,6 +7,8 @@ and reflows it to your terminal width. Images, SVGs and canvases appear in
 separate inline sixel rectangles.
 
 This replaces the whole-page screenshot renderer from 0.1.0.
+Version 0.2.1 fixes inline sixel positioning and avoids clearing/repainting the
+page on ignored mouse events, link selection and status changes.
 
 ## Build and run
 
@@ -62,12 +64,34 @@ Images keep their aspect ratio, fit the terminal width, and occupy at most
 minus/plus buttons change image size, not the terminal font. Partially visible
 images are cropped to the content area so they cannot cover the toolbar/footer.
 Only visible pictures are requested, cached, and refreshed roughly every two
-seconds. Unchanged pictures do not trigger another redraw.
+seconds. Unchanged pictures are not retransmitted when text or selection changes.
+Full-screen clears are reserved for changes that move/remove graphics, such as
+scrolling, resizing or navigating. Mouse motion does not repaint the page.
 
 Text extraction updates every `refresh_ms` (400 ms by default), including
 JavaScript changes. HTML image elements, inline SVG and canvas are supported;
-CSS background images are not currently extracted. Broken images keep their
-native alt-text label.
+CSS background images are not currently extracted. Chromium decodes image formats,
+including JPEG and AVIF. Decoded HTML image pixels are captured directly without
+scrolling the original page; native lazy images are awaited before capture.
+Cross-origin images that prohibit pixel extraction, SVG and canvas use bounded
+rectangle captures. Broken images keep their native alt-text label.
+
+### When images do not appear
+
+`-graphics=sixel` selects the output protocol; it cannot add sixel support to a
+terminal. Standard Alacritty does not implement sixel (see its
+[open support request](https://github.com/alacritty/alacritty/issues/910)). Use a
+sixel-capable terminal/build for pixel images. In Alacritty, try the optional
+character-block image fallback:
+
+```sh
+./silk -graphics=halfblock https://cerberusgames.ca
+```
+
+In `auto` mode, the footer explains when the terminal has not reported sixel.
+Forced sixel mode can leave blank image slots on unsupported terminals. If even
+half-block images fail, look for `Image unavailable: ...` in the footer; that
+indicates a browser capture/load error rather than a sixel display problem.
 
 ## Controls
 

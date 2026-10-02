@@ -25,7 +25,7 @@ import (
 	"github.com/SeraphinaDX/Silk/internal/terminal"
 )
 
-const version = "0.2.0"
+const version = "0.2.1"
 
 type request struct{ command browser.Command }
 type update struct {
@@ -201,7 +201,7 @@ func run() error {
 				old := a.assets[u.key]
 				a.assets[u.key] = asset{u.picture, u.hash, time.Now()}
 				if u.err != nil {
-					a.status = "Image unavailable"
+					a.status = "Image unavailable: " + terminal.Clean(u.err.Error())
 				}
 				if old.hash != u.hash || old.picture == nil {
 					a.render()
@@ -317,9 +317,9 @@ type app struct {
 	layout                                    pageview.Layout
 	assets                                    map[string]asset
 	pending                                   map[string]bool
+	paint                                     paintState
 }
 
-func (a *app) chrome() { a.screen.Chrome(a.url, a.title, a.status, a.edit, a.editing) }
 func (a *app) send(c browser.Command) bool {
 	select {
 	case a.commands <- request{command: c}:
@@ -432,65 +432,6 @@ func (a *app) images() {
 	}
 }
 
-func (a *app) render() {
-	s := a.screen
-	io.WriteString(s.Out, "\x1b[?25l\x1b[0m\x1b[2J")
-	for row := 0; row < s.Rows-3; row++ {
-		fmt.Fprintf(s.Out, "\x1b[%d;1H\x1b[38;2;239;228;243m", row+3)
-		index := a.offset + row
-		if index >= len(a.layout.Lines) {
-			continue
-		}
-		line := a.layout.Lines[index]
-		for _, span := range line.Spans {
-			style := "\x1b[0m\x1b[38;2;239;228;243m"
-			switch span.Style {
-			case "heading", "bold":
-				style += "\x1b[1m"
-			case "button", "input":
-				style += "\x1b[38;2;255;186;221m"
-			case "image", "muted":
-				style += "\x1b[38;2;161;146;174m"
-			}
-			if span.Action != "" {
-				style += "\x1b[4m\x1b[38;2;154;209;255m"
-			}
-			if span.Action != "" && span.Action == a.selected {
-				style += "\x1b[7m"
-			}
-			io.WriteString(s.Out, style+terminal.Clean(span.Text))
-		}
-	}
-	if a.mode != "none" {
-		for _, p := range a.layout.Pictures {
-			img := a.assets[pictureKey(p)].picture
-			if img == nil {
-				continue
-			}
-			start := max(p.Row, a.offset)
-			end := min(p.Row+p.Rows, a.offset+s.Rows-3)
-			if start >= end {
-				continue
-			}
-			y0 := (start - p.Row) * s.CellHeight
-			y1 := min(img.Bounds().Dy(), (end-p.Row)*s.CellHeight)
-			if y0 >= y1 {
-				continue
-			}
-			crop := img.SubImage(image.Rect(0, y0, img.Bounds().Dx(), y1))
-			screenRow := start - a.offset + 3
-			fmt.Fprintf(s.Out, "\x1b[%d;1H\x1b[0m", screenRow)
-			if a.mode == "sixel" {
-				s.Out.Write(graphics.Sixel(crop))
-			} else {
-				s.Out.Write(graphics.HalfblockAt(crop, (p.Width+s.CellWidth-1)/s.CellWidth, end-start, screenRow))
-			}
-		}
-	}
-	a.chrome()
-	a.images()
-}
-
 func (a *app) event(e terminal.Event) bool {
 	if e.Report != "" {
 		a.report(e.Report)
@@ -504,7 +445,7 @@ func (a *app) event(e terminal.Event) bool {
 		return false
 	}
 	if e.Mouse != nil {
-		if e.Mouse.Y != 2 {
+		if e.Mouse.Y != 2 && !e.Mouse.Release && e.Mouse.Button&32 == 0 {
 			a.editing = false
 		}
 		a.mouse(*e.Mouse)

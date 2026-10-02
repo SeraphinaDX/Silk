@@ -14,7 +14,9 @@ import (
 	"golang.org/x/term"
 )
 
-const Enter = "\x1b[?1049h\x1b[?25l\x1b[?7l\x1b[?1002h\x1b[?1006h\x1b[?2004h\x1b[?80h\x1b[2J"
+// DECSDM must be reset: inline sixels start at the current text cursor.
+// Setting mode 80 instead pins graphics to the upper-left screen corner.
+const Enter = "\x1b[?1049h\x1b[?25l\x1b[?7l\x1b[?1002h\x1b[?1006h\x1b[?2004h\x1b[?80l\x1b[2J"
 const Leave = "\x1b[0m\x1b[?1002l\x1b[?1006l\x1b[?2004l\x1b[?80l\x1b[?7h\x1b[?25h\x1b[?1049l"
 const Probe = "\x1b[c\x1b[16t\x1b[14t"
 
@@ -73,7 +75,7 @@ func (s *Screen) Line(row int, text string, style string) {
 }
 
 func (s *Screen) Chrome(url, title, status, edit string, editing bool) {
-	s.Line(1, "[Back] [Next] [Reload] [URL] [ - ] [ + ]  Silk 0.2.0", "\x1b[48;2;42;27;48m\x1b[38;2;255;197;225m")
+	s.Line(1, "[Back] [Next] [Reload] [URL] [ - ] [ + ]  Silk 0.2.1", "\x1b[48;2;42;27;48m\x1b[38;2;255;197;225m")
 	address := "  " + url
 	if editing {
 		edit = Clean(edit)

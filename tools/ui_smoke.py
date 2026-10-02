@@ -64,10 +64,14 @@ long.innerHTML=Array.from({length:80},(_,i)=>'<p>Scroll line '+i+'</p>').join(''
             os.write(master,data)
 
         def click_text(text):
-            # Find a native span's last cursor position in a full redraw. This
+            # Find a native span's last cursor position across incremental updates. This
             # resolves the Go text layout, not Chromium's original CSS position.
-            wait_for(text)
-            plain=DCS.sub(b'',bytes(captured))
+            deadline=time.monotonic()+10
+            while text not in all_output:
+                if time.monotonic()>deadline:
+                    raise AssertionError(f'missing clickable {text!r}')
+                read()
+            plain=DCS.sub(b'',bytes(all_output))
             pos=plain.rfind(text)
             cursors=list(re.finditer(rb'\x1b\[(\d+);1H',plain[:pos]))
             row=int(cursors[-1].group(1))
@@ -88,6 +92,13 @@ long.innerHTML=Array.from({length:80},(_,i)=>'<p>Scroll line '+i+'</p>').join(''
                     wait_for(b'\x1bP0;1;0q"1;1;120;60')
                 if with_image and mode=='halfblock':
                     wait_for('▀'.encode())
+                # Ignore motion without a page clear or image retransmission.
+                read(.2)
+                send(b'\x1b[<32;3;3M' * 20)
+                deadline=time.monotonic()+.5
+                while time.monotonic()<deadline:
+                    read(.05)
+                assert b'\x1b[2J' not in captured and not DCS.search(captured), 'motion repainted graphics'
                 click_text(b'[ Click ]')
                 wait_for(b'[ Clicked ]')
                 click_text(b'[Name: ]')
